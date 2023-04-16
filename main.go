@@ -152,20 +152,20 @@ func main() {
 	//var address = "/tmp/unit-sock/control.unit.sock"
 	var network = "tcp"
 	var address = ":8081"
+
+	var stats *UnitStats
 	c := connector.NewConnection(network, address)
-	printResult, err := collectMetrics(c, network)
+	printResult, err := stats.collectMetrics(c, network)
 	if err != nil {
 		log.Error("Error by main func: ", err.Error())
 	}
 	fmt.Printf("Response by func: %v\n", printResult)
 }
 
-func collectMetrics(c *http.Client, network string) (metrics *UnitStats, err error) {
-	var b *UnitStats
-
-	res, err := c.Get("http://" + network + "/statuss")
+func (stats *UnitStats) collectMetrics(c *http.Client, network string) (metrics *UnitStats, err error) {
+	res, err := c.Get("http://" + network + "/status")
 	if err != nil {
-		return b, err
+		return metrics, err
 	}
 	body, err := io.ReadAll(res.Body)
 	res.Body.Close()
@@ -173,12 +173,13 @@ func collectMetrics(c *http.Client, network string) (metrics *UnitStats, err err
 		log.Warnf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
 	}
 	if err != nil {
-		return b, err
+		return metrics, err
 	}
 
-	err = json.Unmarshal(body, &b)
+	err = json.Unmarshal(body, &metrics)
 	if err != nil {
-		return b, err
+		return metrics, err
 	}
-	return b, nil
+	return metrics, nil
+
 }
