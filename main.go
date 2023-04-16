@@ -3,17 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"nginx_unit_exporter/connector"
 )
-
-type UnitStats struct {
-	Connections  map[string]int                       `json:"connections,omitempty"`
-	Requests     map[string]int                       `json:"requests,omitempty"`
-	Applications map[string]map[string]map[string]int `json:"applications,omitempty"`
-}
 
 /*
 package main
@@ -147,7 +143,37 @@ func main() {
 }
 */
 
+type UnitStats struct {
+	Connections  map[string]int                       `json:"connections,omitempty"`
+	Requests     map[string]int                       `json:"requests,omitempty"`
+	Applications map[string]map[string]map[string]int `json:"applications,omitempty"`
+}
+
+// Descriptors used by the UnitCollector below.
+var (
+	unitInstanceRequestsTotal = prometheus.NewDesc(
+		"unit_instance_requests_total",
+		"Total non-API requests during the instance’s lifetime.",
+		[]string{"instance"}, nil,
+	)
+	unitInstanceConnectionsAccepted = prometheus.NewDesc(
+		"unit_instance_connections_accepted",
+		"Total accepted connections during the instance’s lifetime.",
+		[]string{"instance"}, nil,
+	)
+)
+
+func (stats *UnitStats) collectMetrics(c, network) (
+	oomCountByHost map[string]int, ramUsageByHost map[string]float64,
+)
+
+func (cc ClusterManagerCollector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(cc, ch)
+}
+
 func main() {
+	//############################
+	// Here should be configured with flags or env
 	//var network = "unix"
 	//var address = "/tmp/unit-sock/control.unit.sock"
 	var network = "tcp"
@@ -158,6 +184,25 @@ func main() {
 		log.Error("Error by main func: ", err.Error())
 	}
 	fmt.Printf("Response by func: %v\n", printResult)
+	//#############################
+	// Since we are dealing with custom Collector implementations, it might
+	// be a good idea to try it out with a pedantic registry.
+	reg := prometheus.NewPedanticRegistry()
+
+	// Construct cluster managers. In real code, we would assign them to
+	// variables to then do something with them.
+	NewClusterManager("db", reg)
+	NewClusterManager("ca", reg)
+
+	// Add the standard process and Go metrics to the custom registry.
+	reg.MustRegister(
+		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		prometheus.NewGoCollector(),
+	)
+
+	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	log.Fatal(http.ListenAndServe(":8080", nil))
+
 }
 
 func collectMetrics(c *http.Client, network string) (metrics *UnitStats, err error) {

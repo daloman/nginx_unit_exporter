@@ -27,8 +27,17 @@
 }
 ```
 
-unit_instance_connections_ 
+## Prometheus mertics prototipe
+```bash
+unit_instance_connections_accepted
+unit_instance_connections_active
+unit_instance_connections_idle
+unit_instance_connections_closed
+
 unit_instance_requests_total
 
-unit_application_ process_ __
-unit_application_ requests  active
+unit_application_processes_running{application= }
+unit_application_processes_starting{application= }
+unit_application_processes_idle{application= }
+unit_application_processes_requests_active{application= }
+```
