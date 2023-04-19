@@ -1,6 +1,14 @@
-#
+###
 
-GET http://127.0.0.1:8084/metrics
+GET http://127.0.0.1:9094/metrics
 
 ###
 GET http://127.0.0.1:8080/
+
+# Get status from Unitd
+###
+GET http://127.0.0.1:8081/status
+
+# Get Unitd configuration
+###
+GET http://127.0.0.1:8081/config

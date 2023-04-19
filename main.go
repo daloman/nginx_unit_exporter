@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"nginx_unit_exporter/connector"
+	"os"
 )
 
 /*
@@ -154,12 +154,23 @@ var (
 	unitInstanceRequestsTotalDesc = prometheus.NewDesc(
 		"unit_instance_requests_total",
 		"Total non-API requests during the instance’s lifetime.",
-		[]string{"instance"}, nil,
+		[]string{"instance", "application"}, nil,
 	)
 	unitInstanceConnectionsAcceptedDesc = prometheus.NewDesc(
 		"unit_instance_connections_accepted",
 		"Total accepted connections during the instance’s lifetime.",
-		[]string{"instance"}, nil,
+		[]string{"instance", "application"}, nil,
+	)
+	unitApplicationRequestsActiveDesc = prometheus.NewDesc(
+		"unit_application_requests_active",
+		"Similar to /status/requests, but includes only the data for a specific app.",
+		[]string{"instance", "application"}, nil,
+	)
+
+	unitApplicationProcessesDesc = prometheus.NewDesc(
+		"unit_application_processes",
+		"Current app processes.",
+		[]string{"instance", "application", "state"}, nil,
 	)
 )
 
@@ -180,7 +191,7 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
 		unitInstanceRequestsTotalDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceRequestsTotal),
-		"unit",
+		"unit", "",
 	)
 
 	unitInstanceConnectionsAccepted := resUnitMetrics.Connections["accepted"]
@@ -188,8 +199,30 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
 		unitInstanceConnectionsAcceptedDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceConnectionsAccepted),
-		"unit",
+		"unit", "",
 	)
+
+	unitApplicationRequestsActive := resUnitMetrics.Applications
+	for application := range unitApplicationRequestsActive {
+		ch <- prometheus.MustNewConstMetric(
+			unitApplicationRequestsActiveDesc,
+			prometheus.GaugeValue,
+			float64(unitApplicationRequestsActive[application]["requests"]["active"]),
+			"unit", application,
+		)
+	}
+
+	unitApplicationProcesses := resUnitMetrics.Applications
+	for application := range unitApplicationProcesses {
+		for state := range unitApplicationProcesses[application]["processes"] {
+			ch <- prometheus.MustNewConstMetric(
+				unitApplicationProcessesDesc,
+				prometheus.GaugeValue,
+				float64(unitApplicationProcesses[application]["processes"][state]),
+				"unit", application, state,
+			)
+		}
+	}
 }
 
 // NewUnitStats first creates a Prometheus-ignorant ClusterManager
@@ -200,17 +233,32 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
 func NewUnitStats(reg prometheus.Registerer) *UnitStats {
 	c := &UnitStats{}
 	sc := UnitStatsCollector{UnitStats: c}
-	prometheus.WrapRegistererWith(prometheus.Labels{"lalla": "foobar"}, reg).MustRegister(sc)
+	prometheus.WrapRegistererWith(prometheus.Labels{}, reg).MustRegister(sc)
 	return c
 }
 
 func main() {
-	var stats *UnitStats
-	printResult, err := stats.collectMetrics()
-	if err != nil {
-		log.Error("Error by main func: ", err.Error())
-	}
-	fmt.Printf("Response by func: %v\n", printResult)
+	/*
+		var stats *UnitStats
+		printResult, err := stats.collectMetrics()
+		if err != nil {
+			log.Error("Error by main func: ", err.Error())
+		}
+		fmt.Printf("Response by func: %v\n", printResult)
+
+	*/
+	/*
+		// For durty debug purposes only
+			map[laravel:map[processes:map[idle:1 running:1 starting:0] requests:map[active:0]]
+			for application := range printResult.Applications {
+				for state := range printResult.Applications[application]["processes"] {
+					fmt.Println(printResult.Applications[application]["processes"][state])
+				}
+				fmt.Println(application)
+				fmt.Println(printResult.Applications[application]["processes"])
+			}
+	*/
+
 	//#############################
 	// Since we are dealing with custom Collector implementations, it might
 	// be a good idea to try it out with a pedantic registry.
@@ -224,11 +272,12 @@ func main() {
 	// Add the standard process and Go metrics to the custom registry.
 	reg.MustRegister(
 		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
-		prometheus.NewGoCollector(),
+		//prometheus.NewGoCollector(),
 	)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	log.Fatal(http.ListenAndServe(":8084", nil))
+	var metricsAddress = os.Getenv("METRICS_LISTEN_ADDRESS") //:9094
+	log.Fatal(http.ListenAndServe(metricsAddress, nil))
 
 }
 
@@ -237,8 +286,8 @@ func (stats *UnitStats) collectMetrics() (metrics *UnitStats, err error) {
 	// Here should be configured with flags or env
 	//var network = "unix"
 	//var address = "/tmp/unit-sock/control.unit.sock"
-	var network = "tcp"
-	var address = ":8081"
+	var network = os.Getenv("UNITD_CONTROL_NETWORK") //"tcp"
+	var address = os.Getenv("UNITD_CONTROL_ADDRESS") //":8081"
 
 	c := connector.NewConnection(network, address)
 	res, err := c.Get("http://" + network + "/status")

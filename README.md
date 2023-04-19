@@ -1,3 +1,12 @@
+## Usage
+
+Define env variables to run exporter
+
+```bash
+export UNITD_CONTROL_NETWORK="tcp"
+export UNITD_CONTROL_ADDRESS=":8081"
+export METRICS_LISTEN_ADDRESS=":9094"
+```
 
 ## Unit stats meaning
 
@@ -40,4 +49,27 @@ unit_application_processes_running{application= }
 unit_application_processes_starting{application= }
 unit_application_processes_idle{application= }
 unit_application_processes_requests_active{application= }
+```
+
+## Result metrics
+
+```bash
+# TYPE unit_application_processes gauge
+unit_application_processes{application="laravel",instance="unit",state="idle"} 1
+unit_application_processes{application="laravel",instance="unit",state="running"} 1
+unit_application_processes{application="laravel",instance="unit",state="starting"} 0
+unit_application_processes{application="myblog",instance="unit",state="idle"} 3
+unit_application_processes{application="myblog",instance="unit",state="running"} 3
+unit_application_processes{application="myblog",instance="unit",state="starting"} 0
+# HELP unit_application_requests_active Similar to /status/requests, but includes only the data for a specific app.
+# TYPE unit_application_requests_active gauge
+unit_application_requests_active{application="unit",instance="laravel"} 0
+unit_application_requests_active{application="unit",instance="myblog"} 0
+# HELP unit_instance_connections_accepted Total accepted connections during the instance’s lifetime.
+# TYPE unit_instance_connections_accepted counter
+unit_instance_connections_accepted{application="",instance="unit"} 7
+# HELP unit_instance_requests_total Total non-API requests during the instance’s lifetime.
+# TYPE unit_instance_requests_total counter
+unit_instance_requests_total{application="",instance="unit"} 7
+
 ```
