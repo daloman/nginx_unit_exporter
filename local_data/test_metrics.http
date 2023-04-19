@@ -1,4 +1,6 @@
 #
 
-GET http://127.0.0.1:9104/metrics
+GET http://127.0.0.1:8084/metrics
 
+###
+GET http://127.0.0.1:8080/

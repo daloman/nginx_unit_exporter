@@ -168,18 +168,19 @@ type UnitStatsCollector struct {
 	UnitStats *UnitStats
 }
 
-//func (sc UnitStatsCollector) Describe(ch chan<- *prometheus.Desc, c *http.Client, network string) {
-//	prometheus.DescribeByCollect(sc, ch)
-//}
+func (sc UnitStatsCollector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(sc, ch)
+}
 
-func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric, c *http.Client, network string) {
-	resUnitMetrics, _ := sc.UnitStats.collectMetrics(c, network)
+func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
+	resUnitMetrics, _ := sc.UnitStats.collectMetrics()
 
 	unitInstanceRequestsTotal := resUnitMetrics.Requests["total"]
 	ch <- prometheus.MustNewConstMetric(
 		unitInstanceRequestsTotalDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceRequestsTotal),
+		"unit",
 	)
 
 	unitInstanceConnectionsAccepted := resUnitMetrics.Connections["accepted"]
@@ -187,6 +188,7 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric, c *http.Client
 		unitInstanceConnectionsAcceptedDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceConnectionsAccepted),
+		"unit",
 	)
 }
 
@@ -198,21 +200,13 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric, c *http.Client
 func NewUnitStats(reg prometheus.Registerer) *UnitStats {
 	c := &UnitStats{}
 	sc := UnitStatsCollector{UnitStats: c}
-	prometheus.WrapRegistererWith(prometheus.Labels{"zone": "zone"}, reg).MustRegister(sc)
+	prometheus.WrapRegistererWith(prometheus.Labels{"lalla": "foobar"}, reg).MustRegister(sc)
 	return c
 }
 
 func main() {
-	//############################
-	// Here should be configured with flags or env
-	//var network = "unix"
-	//var address = "/tmp/unit-sock/control.unit.sock"
-	var network = "tcp"
-	var address = ":8081"
-
 	var stats *UnitStats
-	c := connector.NewConnection(network, address)
-	printResult, err := stats.collectMetrics(c, network)
+	printResult, err := stats.collectMetrics()
 	if err != nil {
 		log.Error("Error by main func: ", err.Error())
 	}
@@ -238,7 +232,15 @@ func main() {
 
 }
 
-func (stats *UnitStats) collectMetrics(c *http.Client, network string) (metrics *UnitStats, err error) {
+func (stats *UnitStats) collectMetrics() (metrics *UnitStats, err error) {
+	//############################
+	// Here should be configured with flags or env
+	//var network = "unix"
+	//var address = "/tmp/unit-sock/control.unit.sock"
+	var network = "tcp"
+	var address = ":8081"
+
+	c := connector.NewConnection(network, address)
 	res, err := c.Get("http://" + network + "/status")
 	if err != nil {
 		return metrics, err
