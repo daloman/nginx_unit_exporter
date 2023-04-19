@@ -151,24 +151,55 @@ type UnitStats struct {
 
 // Descriptors used by the UnitCollector below.
 var (
-	unitInstanceRequestsTotal = prometheus.NewDesc(
+	unitInstanceRequestsTotalDesc = prometheus.NewDesc(
 		"unit_instance_requests_total",
 		"Total non-API requests during the instance’s lifetime.",
 		[]string{"instance"}, nil,
 	)
-	unitInstanceConnectionsAccepted = prometheus.NewDesc(
+	unitInstanceConnectionsAcceptedDesc = prometheus.NewDesc(
 		"unit_instance_connections_accepted",
 		"Total accepted connections during the instance’s lifetime.",
 		[]string{"instance"}, nil,
 	)
 )
 
-func (stats *UnitStats) collectMetrics(c, network) (
-	oomCountByHost map[string]int, ramUsageByHost map[string]float64,
-)
+// UnitStatsCollector implements the Collector interface.
+type UnitStatsCollector struct {
+	UnitStats *UnitStats
+}
 
-func (cc ClusterManagerCollector) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(cc, ch)
+//func (sc UnitStatsCollector) Describe(ch chan<- *prometheus.Desc, c *http.Client, network string) {
+//	prometheus.DescribeByCollect(sc, ch)
+//}
+
+func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric, c *http.Client, network string) {
+	resUnitMetrics, _ := sc.UnitStats.collectMetrics(c, network)
+
+	unitInstanceRequestsTotal := resUnitMetrics.Requests["total"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceRequestsTotalDesc,
+		prometheus.CounterValue,
+		float64(unitInstanceRequestsTotal),
+	)
+
+	unitInstanceConnectionsAccepted := resUnitMetrics.Connections["accepted"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsAcceptedDesc,
+		prometheus.CounterValue,
+		float64(unitInstanceConnectionsAccepted),
+	)
+}
+
+// NewUnitStats first creates a Prometheus-ignorant ClusterManager
+// instance. Then, it creates a ClusterManagerCollector for the just created
+// ClusterManager. Finally, it registers the ClusterManagerCollector with a
+// wrapping Registerer that adds the zone as a label. In this way, the metrics
+// collected by different ClusterManagerCollectors do not collide.
+func NewUnitStats(reg prometheus.Registerer) *UnitStats {
+	c := &UnitStats{}
+	sc := UnitStatsCollector{UnitStats: c}
+	prometheus.WrapRegistererWith(prometheus.Labels{"zone": "zone"}, reg).MustRegister(sc)
+	return c
 }
 
 func main() {
@@ -193,8 +224,8 @@ func main() {
 
 	// Construct cluster managers. In real code, we would assign them to
 	// variables to then do something with them.
-	NewClusterManager("db", reg)
-	NewClusterManager("ca", reg)
+	NewUnitStats(reg)
+	//NewUnitStats(reg)
 
 	// Add the standard process and Go metrics to the custom registry.
 	reg.MustRegister(
@@ -203,7 +234,7 @@ func main() {
 	)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8084", nil))
 
 }
 
