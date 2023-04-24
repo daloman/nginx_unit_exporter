@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	env "github.com/caitlinelfring/go-env-default"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"nginx_unit_exporter/connector"
-	"os"
 )
 
 /*
@@ -161,6 +161,25 @@ var (
 		"Total accepted connections during the instance’s lifetime.",
 		[]string{"instance", "application"}, nil,
 	)
+
+	unitInstanceConnectionsActiveDesc = prometheus.NewDesc(
+		"unit_instance_connections_active",
+		"Current active connections for the instance",
+		[]string{"instance", "application"}, nil,
+	)
+
+	unitInstanceConnectionsIdleDesc = prometheus.NewDesc(
+		"unit_instance_connections_idle",
+		"Current idle connections for the instance",
+		[]string{"instance", "application"}, nil,
+	)
+
+	unitInstanceConnectionsClosedDesc = prometheus.NewDesc(
+		"unit_instance_connections_closed",
+		"Total closed connections during the instance’s lifetime",
+		[]string{"instance", "application"}, nil,
+	)
+
 	unitApplicationRequestsActiveDesc = prometheus.NewDesc(
 		"unit_application_requests_active",
 		"Similar to /status/requests, but includes only the data for a specific app.",
@@ -199,6 +218,30 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
 		unitInstanceConnectionsAcceptedDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceConnectionsAccepted),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsActive := resUnitMetrics.Connections["active"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsActiveDesc,
+		prometheus.GaugeValue,
+		float64(unitInstanceConnectionsActive),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsIdle := resUnitMetrics.Connections["idle"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsIdleDesc,
+		prometheus.GaugeValue,
+		float64(unitInstanceConnectionsIdle),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsClosed := resUnitMetrics.Connections["closed"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsClosedDesc,
+		prometheus.CounterValue,
+		float64(unitInstanceConnectionsClosed),
 		"unit", "",
 	)
 
@@ -276,7 +319,7 @@ func main() {
 	)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	var metricsAddress = os.Getenv("METRICS_LISTEN_ADDRESS") //:9094
+	var metricsAddress = env.GetDefault("METRICS_LISTEN_ADDRESS", ":9095")
 	log.Fatal(http.ListenAndServe(metricsAddress, nil))
 
 }
@@ -286,8 +329,8 @@ func (stats *UnitStats) collectMetrics() (metrics *UnitStats, err error) {
 	// Here should be configured with flags or env
 	//var network = "unix"
 	//var address = "/tmp/unit-sock/control.unit.sock"
-	var network = os.Getenv("UNITD_CONTROL_NETWORK") //"tcp"
-	var address = os.Getenv("UNITD_CONTROL_ADDRESS") //":8081"
+	var network = env.GetDefault("UNITD_CONTROL_NETWORK", "tcp")
+	var address = env.GetDefault("UNITD_CONTROL_ADDRESS", ":8081")
 
 	c := connector.NewConnection(network, address)
 	res, err := c.Get("http://" + network + "/status")

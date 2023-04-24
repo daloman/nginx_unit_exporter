@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"time"
@@ -11,7 +12,11 @@ import (
 func NewConnection(network, address string) *http.Client {
 	tr := &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial(network, address)
+			conn, err := net.Dial(network, address)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return conn, nil
 		},
 		IdleConnTimeout:    30 * time.Second,
 		DisableCompression: true,
