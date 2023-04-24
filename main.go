@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	env "github.com/caitlinelfring/go-env-default"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"nginx_unit_exporter/connector"
-	"os"
 )
 
 /*
@@ -276,7 +276,7 @@ func main() {
 	)
 
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	var metricsAddress = os.Getenv("METRICS_LISTEN_ADDRESS") //:9094
+	var metricsAddress = env.GetDefault("METRICS_LISTEN_ADDRESS", ":9095")
 	log.Fatal(http.ListenAndServe(metricsAddress, nil))
 
 }
@@ -286,8 +286,8 @@ func (stats *UnitStats) collectMetrics() (metrics *UnitStats, err error) {
 	// Here should be configured with flags or env
 	//var network = "unix"
 	//var address = "/tmp/unit-sock/control.unit.sock"
-	var network = os.Getenv("UNITD_CONTROL_NETWORK") //"tcp"
-	var address = os.Getenv("UNITD_CONTROL_ADDRESS") //":8081"
+	var network = env.GetDefault("UNITD_CONTROL_NETWORK", "tcp")
+	var address = env.GetDefault("UNITD_CONTROL_ADDRESS", ":8081")
 
 	c := connector.NewConnection(network, address)
 	res, err := c.Get("http://" + network + "/status")
