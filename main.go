@@ -161,6 +161,25 @@ var (
 		"Total accepted connections during the instance’s lifetime.",
 		[]string{"instance", "application"}, nil,
 	)
+
+	unitInstanceConnectionsActiveDesc = prometheus.NewDesc(
+		"unit_instance_connections_active",
+		"Current active connections for the instance",
+		[]string{"instance", "application"}, nil,
+	)
+
+	unitInstanceConnectionsIdleDesc = prometheus.NewDesc(
+		"unit_instance_connections_idle",
+		"Current idle connections for the instance",
+		[]string{"instance", "application"}, nil,
+	)
+
+	unitInstanceConnectionsClosedDesc = prometheus.NewDesc(
+		"unit_instance_connections_closed",
+		"Total closed connections during the instance’s lifetime",
+		[]string{"instance", "application"}, nil,
+	)
+
 	unitApplicationRequestsActiveDesc = prometheus.NewDesc(
 		"unit_application_requests_active",
 		"Similar to /status/requests, but includes only the data for a specific app.",
@@ -199,6 +218,30 @@ func (sc UnitStatsCollector) Collect(ch chan<- prometheus.Metric) {
 		unitInstanceConnectionsAcceptedDesc,
 		prometheus.CounterValue,
 		float64(unitInstanceConnectionsAccepted),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsActive := resUnitMetrics.Connections["active"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsActiveDesc,
+		prometheus.GaugeValue,
+		float64(unitInstanceConnectionsActive),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsIdle := resUnitMetrics.Connections["idle"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsIdleDesc,
+		prometheus.GaugeValue,
+		float64(unitInstanceConnectionsIdle),
+		"unit", "",
+	)
+
+	unitInstanceConnectionsClosed := resUnitMetrics.Connections["closed"]
+	ch <- prometheus.MustNewConstMetric(
+		unitInstanceConnectionsClosedDesc,
+		prometheus.CounterValue,
+		float64(unitInstanceConnectionsClosed),
 		"unit", "",
 	)
 
