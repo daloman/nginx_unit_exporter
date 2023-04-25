@@ -3,11 +3,11 @@
 Define env variables to run exporter
 
 
-|Variable name             |Default value |Example          |
-|--------------------------|--------------|-----------------|
-|UNITD_CONTROL_NETWORK     |  tcp         | `tcp` OR `unix` ... see [net.Dial examples](https://pkg.go.dev/net#Dial)   |
-|UNITD_CONTROL_ADDRESS     |  :8081       | `127.0.0.1:8080` OR `/var/run/control.unit.sock`  |
-|METRICS_LISTEN_ADDRESS    |  :9095       | `127.0.0.1:9095`  |
+|Variable name             |Default value | Example                                                                  |
+|--------------------------|--------------|--------------------------------------------------------------------------|
+|UNITD_CONTROL_NETWORK     |  tcp         | `tcp` OR `unix` ... see [net.Dial examples](https://pkg.go.dev/net#Dial) |
+|UNITD_CONTROL_ADDRESS     |  :8081       | `127.0.0.1:8081` OR `/var/run/control.unit.sock`                         |
+|METRICS_LISTEN_ADDRESS    |  :9095       | `127.0.0.1:9095`                                                         |
 
 Example for bash:
 ```bash
@@ -45,21 +45,6 @@ Read the docs https://unit.nginx.org/usagestats/
 }
 ```
 
-## Prometheus mertics prototipe
-```bash
-unit_instance_connections_accepted
-unit_instance_connections_active
-unit_instance_connections_idle
-unit_instance_connections_closed
-
-unit_instance_requests_total
-
-unit_application_processes_running{application= }
-unit_application_processes_starting{application= }
-unit_application_processes_idle{application= }
-unit_application_processes_requests_active{application= }
-```
-
 ## Result metrics example
 
 ```bash
@@ -75,20 +60,20 @@ unit_application_processes{application="myblog",instance="unit",state="starting"
 # TYPE unit_application_requests_active gauge
 unit_application_requests_active{application="laravel",instance="unit"} 0
 unit_application_requests_active{application="myblog",instance="unit"} 0
-# HELP unit_instance_connections_accepted Total accepted connections during the instance’s lifetime.
-# TYPE unit_instance_connections_accepted counter
-unit_instance_connections_accepted{application="",instance="unit"} 3
+# HELP unit_instance_connections_accepted_total Total accepted connections during the instance’s lifetime.
+# TYPE unit_instance_connections_accepted_total counter
+unit_instance_connections_accepted_total{application="",instance="unit"} 2
 # HELP unit_instance_connections_active Current active connections for the instance
 # TYPE unit_instance_connections_active gauge
 unit_instance_connections_active{application="",instance="unit"} 0
-# HELP unit_instance_connections_closed Total closed connections during the instance’s lifetime
-# TYPE unit_instance_connections_closed counter
-unit_instance_connections_closed{application="",instance="unit"} 3
+# HELP unit_instance_connections_closed_total Total closed connections during the instance’s lifetime
+# TYPE unit_instance_connections_closed_total counter
+unit_instance_connections_closed_total{application="",instance="unit"} 2
 # HELP unit_instance_connections_idle Current idle connections for the instance
 # TYPE unit_instance_connections_idle gauge
 unit_instance_connections_idle{application="",instance="unit"} 0
 # HELP unit_instance_requests_total Total non-API requests during the instance’s lifetime.
 # TYPE unit_instance_requests_total counter
-unit_instance_requests_total{application="",instance="unit"} 3
+unit_instance_requests_total{application="",instance="unit"} 2
 
 ```
