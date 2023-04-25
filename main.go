@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	env "github.com/caitlinelfring/go-env-default"
+	"github.com/caitlinelfring/go-env-default"
+	"github.com/daloman/nginx_unit_exporter/connector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
-	"nginx_unit_exporter/connector"
 )
 
 type UnitStats struct {
