@@ -1,0 +1,23 @@
+{
+    "connections": {
+        "accepted": 317891, // _total counter Integer; total accepted connections during the instance’s lifetime.
+        "active": 0,
+        "idle": 2,
+        "closed": 317889
+    },
+    "requests": {
+        "total": 381513
+    },
+    "applications": {
+        "laravel": {
+            "processes": {
+                "running": 1,
+                "starting": 0,
+                "idle": 1
+            },
+            "requests": {
+                "active": 0
+            }
+        }
+    }
+}
