@@ -1,4 +1,4 @@
-module nginx_unit_exporter
+module github.com/daloman/nginx_unit_exporter
 
 go 1.19
 
