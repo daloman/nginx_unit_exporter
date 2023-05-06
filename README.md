@@ -1,13 +1,28 @@
+# Unit Prometheus Exporter
+
+This code aims to export in Prometheus format [usage statistics](https://unit.nginx.org/usagestats/)
+available via the GET-only /status section of [Unit control API](https://unit.nginx.org/controlapi/#configuration-api).
+
 ## Usage
 
-Define env variables to run exporter
+One can run nginx_unit_exporter as: 
+ - sidecar container within same [Pod](https://kubernetes.io/docs/concepts/workloads/pods/) 
+with Unit container.
+ - separate Docker container
+ - Systemd service
+ - any other manner
 
+Buid app.
+
+Define env variables to run exporter
 
 |Variable name             |Default value | Example                                                                  |
 |--------------------------|--------------|--------------------------------------------------------------------------|
 |UNITD_CONTROL_NETWORK     |  tcp         | `tcp` OR `unix` ... see [net.Dial examples](https://pkg.go.dev/net#Dial) |
 |UNITD_CONTROL_ADDRESS     |  :8081       | `127.0.0.1:8081` OR `/var/run/control.unit.sock`                         |
 |METRICS_LISTEN_ADDRESS    |  :9095       | `127.0.0.1:9095`                                                         |
+
+Run nginx_unit_exporter.
 
 Example for bash:
 ```bash
